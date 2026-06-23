@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quehaceres</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #161616;
+    --border: #252525;
+    --text: #e2e2e2;
+    --muted: #555;
+    --accent: #e2e2e2;
+    --danger: #c0392b;
+    --warn: #d68910;
+    --done: #2a2a2a;
+    --font: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 18px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  header h1 {
+    font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--muted); font-weight: 700;
+  }
+  .tabs { margin-left: auto; display: flex; gap: 6px; }
+  .tab {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); border-radius: 20px;
+    padding: 4px 13px; font-size: 12px; cursor: pointer;
+    transition: all .15s; font-family: var(--font);
+  }
+  .tab.active {
+    background: var(--accent); color: #0f0f0f;
+    border-color: var(--accent); font-weight: 600;
+  }
+
+  /* ─── MAIN ─── */
+  main { max-width: 540px; margin: 0 auto; padding: 14px 14px 80px; }
+
+  /* ─── ADD BUTTON ─── */
+  .add-btn {
+    width: 100%; background: transparent;
+    border: 1px dashed var(--border); color: var(--muted);
+    padding: 10px 14px; border-radius: 8px; cursor: pointer;
+    font-size: 13px; margin-bottom: 10px; text-align: left;
+    transition: border-color .15s, color .15s; font-family: var(--font);
+  }
+  .add-btn:hover { border-color: #555; color: #999; }
+
+  /* ─── CARDS ─── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 2px solid transparent;
+    border-radius: 8px; padding: 11px 12px; margin-bottom: 8px;
+    transition: opacity .2s;
+  }
+  .card.done-card { opacity: .4; }
+  .card.overdue { border-left-color: var(--danger); }
+  .card.past    { border-left-color: var(--warn); }
+
+  .card-view { display: flex; align-items: flex-start; gap: 10px; }
+  .check {
+    width: 16px; height: 16px; min-width: 16px;
+    border-radius: 4px; border: 1px solid #444;
+    background: transparent; cursor: pointer; margin-top: 1px;
+    transition: background .15s;
+  }
+  .check.checked { background: var(--accent); border-color: var(--accent); }
+  .card-body { flex: 1; min-width: 0; }
+  .card-text { color: var(--text); word-break: break-word; line-height: 1.4; }
+  .card-text.struck { text-decoration: line-through; color: var(--muted); }
+  .card-date { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .card-date.red { color: var(--danger); }
+  .card-date.orange { color: var(--warn); }
+  .icon-btn {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 13px; padding: 2px 4px;
+    transition: color .15s;
+  }
+  .icon-btn:hover { color: #aaa; }
+
+  /* ─── EDIT FORM ─── */
+  .edit-form { display: flex; flex-direction: column; gap: 7px; }
+  .edit-form input {
+    width: 100%; background: #0f0f0f; border: 1px solid #333;
+    border-radius: 6px; padding: 7px 10px; color: var(--text);
+    font-size: 14px; outline: none; font-family: var(--font);
+    transition: border-color .15s;
+  }
+  .edit-form input:focus { border-color: #555; }
+  .edit-form input[type="datetime-local"] { color: #888; font-size: 12px; }
+  .form-btns { display: flex; gap: 6px; }
+  .btn-save {
+    background: var(--accent); color: #0f0f0f; border: none;
+    border-radius: 6px; padding: 5px 14px; font-size: 12px;
+    cursor: pointer; font-weight: 600; font-family: var(--font);
+  }
+  .btn-del {
+    background: transparent; color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: 6px; padding: 5px 14px; font-size: 12px;
+    cursor: pointer; font-family: var(--font);
+  }
+
+  .bell { margin-top: 1px; }
+  .empty { color: #444; font-size: 12px; text-align: center; margin-top: 36px; }
+
+  /* ─── SECTION ─── */
+  .section { display: none; }
+  .section.active { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Quehaceres</h1>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('tareas')">Tareas <span id="badge-tareas"></span></button>
+    <button class="tab" onclick="switchTab('recordatorios')">Recordatorios <span id="badge-rec"></span></button>
+  </div>
+</header>
+
+<main>
+  <div id="sec-tareas" class="section active">
+    <button class="add-btn" onclick="addTask()">+ Tarea</button>
+    <div id="task-list"></div>
+    <p id="empty-tasks" class="empty" style="display:none">Sin tareas. Agrega una.</p>
+  </div>
+
+  <div id="sec-recordatorios" class="section">
+    <button class="add-btn" onclick="addReminder()">+ Recordatorio</button>
+    <div id="reminder-list"></div>
+    <p id="empty-rems" class="empty" style="display:none">Sin recordatorios.</p>
+  </div>
+</main>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────
+const KEY = "quehaceres-v2";
+let state = { tasks: [], reminders: [] };
+
+function load() {
+  try { state = JSON.parse(localStorage.getItem(KEY)) || { tasks: [], reminders: [] }; }
+  catch(_) { state = { tasks: [], reminders: [] }; }
+}
+function save() {
+  localStorage.setItem(KEY, JSON.stringify(state));
+}
+
+// ─── TAB ─────────────────────────────────────────────────
+let currentTab = "tareas";
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll(".tab").forEach((el, i) => {
+    el.classList.toggle("active", (i === 0 && tab === "tareas") || (i === 1 && tab === "recordatorios"));
+  });
+  document.getElementById("sec-tareas").classList.toggle("active", tab === "tareas");
+  document.getElementById("sec-recordatorios").classList.toggle("active", tab === "recordatorios");
+}
+
+// ─── RENDER ──────────────────────────────────────────────
+function render() {
+  renderTasks();
+  renderReminders();
+  updateBadges();
+}
+
+function fmtDisplay(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleString("es", { dateStyle: "short", timeStyle: "short" });
+}
+function toLocal(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60000).toISOString().slice(0, 16);
+}
+function fromLocal(val) {
+  if (!val) return "";
+  return new Date(val).toISOString();
+}
+
+function renderTasks() {
+  const list = document.getElementById("task-list");
+  const empty = document.getElementById("empty-tasks");
+  list.innerHTML = "";
+
+  if (!state.tasks.length) { empty.style.display = "block"; return; }
+  empty.style.display = "none";
+
+  state.tasks.forEach(t => {
+    const overdue = t.date && !t.done && new Date(t.date) < new Date();
+    const div = document.createElement("div");
+    div.className = "card" + (t.done ? " done-card" : "") + (overdue ? " overdue" : "");
+    div.id = "task-" + t.id;
+
+    if (t.editing) {
+      div.innerHTML = `
+        <div class="edit-form">
+          <input type="text" placeholder="Tarea..." value="${esc(t.text)}"
+            onchange="updateField('task','${t.id}','text',this.value)"
+            onkeydown="if(event.key==='Enter') saveTask('${t.id}')"
+            autofocus>
+          <input type="datetime-local" value="${toLocal(t.date)}"
+            onchange="updateField('task','${t.id}','date',fromLocal(this.value))">
+          <div class="form-btns">
+            <button class="btn-save" onclick="saveTask('${t.id}')">Guardar</button>
+            <button class="btn-del" onclick="deleteTask('${t.id}')">Eliminar</button>
+          </div>
+        </div>`;
+    } else {
+      div.innerHTML = `
+        <div class="card-view">
+          <button class="check ${t.done ? "checked" : ""}" onclick="toggleDone('${t.id}')"></button>
+          <div class="card-body">
+            <div class="card-text ${t.done ? "struck" : ""}">${esc(t.text) || '<em style="color:#444">Sin texto</em>'}</div>
+            ${t.date ? `<div class="card-date ${overdue ? "red" : ""}">${fmtDisplay(t.date)}${overdue ? " · vencida" : ""}</div>` : ""}
+          </div>
+          <button class="icon-btn" onclick="editTask('${t.id}')">✎</button>
+          <button class="icon-btn" onclick="deleteTask('${t.id}')">✕</button>
+        </div>`;
+    }
+    list.appendChild(div);
+  });
+
+  // autofocus after render
+  const focused = list.querySelector("input[type=text]");
+  if (focused) setTimeout(() => focused.focus(), 50);
+}
+
+function renderReminders() {
+  const list = document.getElementById("reminder-list");
+  const empty = document.getElementById("empty-rems");
+  list.innerHTML = "";
+
+  if (!state.reminders.length) { empty.style.display = "block"; return; }
+  empty.style.display = "none";
+
+  state.reminders.forEach(r => {
+    const past = r.date && new Date(r.date) < new Date();
+    const div = document.createElement("div");
+    div.className = "card" + (past ? " past" : "");
+    div.id = "rem-" + r.id;
+
+    if (r.editing) {
+      div.innerHTML = `
+        <div class="edit-form">
+          <input type="text" placeholder="Recordatorio..." value="${esc(r.text)}"
+            onchange="updateField('rem','${r.id}','text',this.value)"
+            onkeydown="if(event.key==='Enter') saveRem('${r.id}')"
+            autofocus>
+          <input type="datetime-local" value="${toLocal(r.date)}"
+            onchange="updateField('rem','${r.id}','date',fromLocal(this.value))">
+          <div class="form-btns">
+            <button class="btn-save" onclick="saveRem('${r.id}')">Guardar</button>
+            <button class="btn-del" onclick="deleteRem('${r.id}')">Eliminar</button>
+          </div>
+        </div>`;
+    } else {
+      div.innerHTML = `
+        <div class="card-view">
+          <span class="bell">🔔</span>
+          <div class="card-body">
+            <div class="card-text">${esc(r.text) || '<em style="color:#444">Sin texto</em>'}</div>
+            ${r.date ? `<div class="card-date ${past ? "orange" : ""}">${fmtDisplay(r.date)}${past ? " · pasado" : ""}</div>` : ""}
+          </div>
+          <button class="icon-btn" onclick="editRem('${r.id}')">✎</button>
+          <button class="icon-btn" onclick="deleteRem('${r.id}')">✕</button>
+        </div>`;
+    }
+    list.appendChild(div);
+
+    const focused = list.querySelector("input[type=text]");
+    if (focused) setTimeout(() => focused.focus(), 50);
+  });
+}
+
+function updateBadges() {
+  const pending = state.tasks.filter(t => !t.done).length;
+  const upcoming = state.reminders.filter(r => r.date && new Date(r.date) > new Date()).length;
+  document.getElementById("badge-tareas").textContent = pending ? `· ${pending}` : "";
+  document.getElementById("badge-rec").textContent = upcoming ? `· ${upcoming}` : "";
+}
+
+// ─── ACTIONS ─────────────────────────────────────────────
+function uid() { return Date.now() + Math.random().toString(36).slice(2); }
+function esc(s) { return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+function addTask() {
+  state.tasks.unshift({ id: uid(), text: "", done: false, date: "", editing: true });
+  save(); render();
+}
+function updateField(type, id, field, val) {
+  const arr = type === "task" ? state.tasks : state.reminders;
+  const item = arr.find(x => x.id == id);
+  if (item) { item[field] = val; save(); }
+}
+function saveTask(id) {
+  const t = state.tasks.find(x => x.id == id);
+  if (t) { t.editing = false; save(); render(); }
+}
+function editTask(id) {
+  const t = state.tasks.find(x => x.id == id);
+  if (t) { t.editing = true; save(); render(); }
+}
+function deleteTask(id) {
+  state.tasks = state.tasks.filter(x => x.id != id);
+  save(); render();
+}
+function toggleDone(id) {
+  const t = state.tasks.find(x => x.id == id);
+  if (t) { t.done = !t.done; save(); render(); }
+}
+
+function addReminder() {
+  state.reminders.unshift({ id: uid(), text: "", date: "", editing: true });
+  save(); render();
+}
+function saveRem(id) {
+  const r = state.reminders.find(x => x.id == id);
+  if (r) { r.editing = false; save(); render(); }
+}
+function editRem(id) {
+  const r = state.reminders.find(x => x.id == id);
+  if (r) { r.editing = true; save(); render(); }
+}
+function deleteRem(id) {
+  state.reminders = state.reminders.filter(x => x.id != id);
+  save(); render();
+}
+
+// ─── INIT ─────────────────────────────────────────────────
+load();
+render();
+</script>
+</body>
+</html>
